@@ -138,6 +138,7 @@ def autokey(text, k, decrypt=False):
 # ////////////////////////////////////////////////////////
 # //         ONE TO MANY:: Playfair CIPHER             //
 # //////////////////////////////////////////////////////
+
 def getMatrixKey(k):
     matrix_key = [[],[],[],[],[]]
     lk = []
@@ -228,3 +229,44 @@ def playfair(text, k, decrypt=False):
     return outText.upper()
 print(playfair("hello","lgdba qmhec urnif xvsok zywtp"))
 print(playfair("ECQZBX","lgdba qmhec urnif xvsok zywtp", decrypt=True))
+
+# ////////////////////////////////////////////////////////
+# //         ONE TO MANY:: VIGENERE CIPHER             //
+# //////////////////////////////////////////////////////
+
+def initKey(text, k):
+    st = len(text)
+    sk = len(k)
+    q = -1
+    r = -1
+    if st > sk:
+        q = st // sk
+        r = st % sk
+        k = k * q
+        for i in range(r):
+            k += k[i]
+    elif st < sk:
+        k = k[:len(text)]
+    return k
+        
+def vigenere(text, k, decrypt=False):
+    text = getAlpha(text)
+    k = getAlpha(k)
+    if text == None or k == None:
+        return None
+    k = initKey(text, k)
+    print(k)
+    f = 1
+    if decrypt:
+        f = -f
+    outText = ''
+    for i in range(len(text)):
+        e = ord(text[i]) - 97 + (f * (ord(k[i])-97))
+        if e < 0: e = 26 + e
+        if e > 26: e = e - 26
+        outText += chr(e + 97)
+    if decrypt: return outText
+    return outText.upper()
+print(vigenere('she is listening', 'pascal'))
+print(vigenere('HHWKSWXSLGNTCG', 'pascal', True))
+
