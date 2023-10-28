@@ -23,15 +23,16 @@ def add(text, k, decrypt=False):
     k = ord(k)-97
     if decrypt:
         k = k * -1
-    outtext = ''
+    outText = ''
     for i in text:
         e = ord(i)-97+k
         if e >= 26:
             e = e -26
         if e < 0:
             e = 26 + e
-        outtext += chr(ord(i)+k)
-    return outtext 
+        outText += chr(ord(i)+k)
+    if decrypt: return outText
+    return outText.upper()
 # print(add('aliisstrongman', 'c'))
 # print(add('cnkkuuvtqpiocp','c',True))
 
@@ -74,13 +75,14 @@ def multi(text, k, decrypt=False):
     if gcd(26, k) == 1:
         if decrypt:
             k = ext_gcd(26,k)
-        cipherText = ""
+        outText = ""
         for i in text:
             e = (ord(i)-97)*k
             if e >= 26:
                 e = e % 26
-            cipherText += chr(e + 97)
-        return cipherText
+            outText += chr(e + 97)
+        if decrypt: return outText
+        return outText.upper()
     else:
         return None
 # print(multi("car is so fast", "h"))
@@ -99,7 +101,7 @@ def affine(text, k1, k2, decrypt=False):
         cipher1 = multi(text, k1)
         if cipher1 != None:
             cipher = add(cipher1, k2)
-            return cipher
+            return cipher.upper()
         return None
 
 # print(affine("carissofast", "h", "c"))
@@ -128,21 +130,15 @@ def autokey(text, k, decrypt=False):
             k = -e
         else:
             k = ord(c)-97
-    return outText 
+    if decrypt: return outText
+    return outText.upper()
 # print(autokey("attakistodaywastoodanger", "m"))
 # print(autokey("mtmtksalhrdyuwslhcrdntkv", "m", decrypt=True))
 
 # ////////////////////////////////////////////////////////
-# //         ONE TO MANY:: Playfair CIPHER              //
+# //         ONE TO MANY:: Playfair CIPHER             //
 # //////////////////////////////////////////////////////
-
-
-def playfair(text, k):
-    if getAlpha(k) == None:
-        return None
-    text = getAlpha(text)
-    k = getAlpha(k)
-    # init key
+def getMatrixKey(k):
     matrix_key = [[],[],[],[],[]]
     lk = []
     for i in k.lower():
@@ -163,58 +159,72 @@ def playfair(text, k):
             else:
                 j.append(i)
                 break
-    bi_matrix = []
-    bi_cipher_matrix = []
+    return matrix_key
+def eF(x):
+    if x>4:
+        return 0
+    if x<0:
+        return 4
+    return x
+
+def clearPadding(text):
     for i in range(len(text)):
+        if i < len(text):
+            if text[i] == 'x' and i != 0 and i != len(text)-1:
+                if text[i-1] == text[i+1]:
+                    text = text[:i] + text[i+1:]
+    if len(text) % 2 !=0 and text[-1] == 'x':
+        text = text[:-1]
+    return text
+
+def playfair(text, k, decrypt=False):
+    text = getAlpha(text)
+    k = getAlpha(k)
+    if k == None or text == None:
+        return None
+    # init key
+    matrix_key = getMatrixKey(k)
+
+    # init bi_matrix
+    bi_matrix = []
+    for i in range(len(text)-1):
         if(i%2==0):
             if text[i+1] == text[i]:
                 text = text[:i+1] + "x" + text[i+1:]
     if len(text)%2 !=0:
-        text = text + "z"
-    print(text)
+        text = text + "x"
     for i in range(0,len(text)//2):
         bi_matrix.append((text[i*2], text[i*2+1]))
+
+    # plainfair algorithm
+    f = 1
+    if decrypt:
+        f = -f
+    bi_out_matrix = []
     for i in bi_matrix:
         a = ''
         b = ''
-        xa = -1
-        ya = -1
-        xb = -1
-        yb = -1
+        ai = [-1, -1]
+        bi = [-1, -1]
         for ij,j in enumerate(matrix_key):
             if i[0] in j:
-                xa = ij
-                ya = j.index(i[0])
+                ai[0] = ij
+                ai[1] = j.index(i[0])
             if i[1] in j:
-                xb = ij
-                yb = j.index(i[1])
-        if xa == xb:
-            if ya!=4 and yb!=4:
-                a = matrix_key[xa][ya+1]
-                b = matrix_key[xb][yb+1]
-            else:
-                if ya == 4:
-                    a = matrix_key[xa][0]
-                if yb == 4:
-                    b = matrix_key[xb][0]
-        elif ya == yb:
-            if xa!=4 and xb!=4:
-                a = matrix_key[xa+1][ya]
-                b = matrix_key[xb+1][yb]
-            else:
-                if xa == 4:
-                    a = matrix_key[0][ya]
-                if xb == 4:
-                    b = matrix_key[0][yb]
+                bi[0] = ij
+                bi[1] = j.index(i[1])
+        if ai[0] == bi[0]:
+            a = matrix_key[ai[0]][eF(ai[1]+f)]
+            b = matrix_key[bi[0]][eF(bi[1]+f)]
+        elif ai[1] == bi[1]:
+            a = matrix_key[eF(ai[0]+f)][ai[1]]
+            b = matrix_key[eF(bi[0]+f)][bi[1]]
         else:
-            if xa < xb:
-                a = matrix_key[xa][yb]
-                b = matrix_key[xb][ya]
-            else:
-                a = matrix_key[xa][yb]
-                b = matrix_key[ya][xb]
-        bi_cipher_matrix.append((a,b))
-            
-
-    return "".join(["".join(y) for y in bi_cipher_matrix]).upper()
-print(playfair("hello","lgdbaqmhecurnifxvsokzywtp"))
+            a = matrix_key[ai[0]][bi[1]]
+            b = matrix_key[bi[0]][ai[1]]
+        bi_out_matrix.append((a,b))
+    outText = "".join(["".join(y) for y in bi_out_matrix])
+    if decrypt: return clearPadding(outText)
+    return outText.upper()
+print(playfair("hello","lgdba qmhec urnif xvsok zywtp"))
+print(playfair("ECQZBX","lgdba qmhec urnif xvsok zywtp", decrypt=True))
