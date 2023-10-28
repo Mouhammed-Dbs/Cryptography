@@ -255,7 +255,6 @@ def vigenere(text, k, decrypt=False):
     if text == None or k == None:
         return None
     k = initKey(text, k)
-    print(k)
     f = 1
     if decrypt:
         f = -f
