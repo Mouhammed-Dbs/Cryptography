@@ -2,10 +2,13 @@
 # //        Filter Method For PlainText & Key          //
 # //////////////////////////////////////////////////////
 
-def getAlpha(text):
+def validText(text, isDigit=False):
     t = ""
     for i in text:
         if not i.isalpha():
+            if isDigit and i.isdigit():
+                t+=i.lower()
+                continue
             if i != " ":
                 return None
         else:
@@ -17,9 +20,9 @@ def getAlpha(text):
 # //////////////////////////////////////////////////////
 
 def add(text, k, decrypt=False):
-    if getAlpha(k) == None:
+    if validText(k) == None:
         return None
-    text = getAlpha(text)
+    text = validText(text)
     k = ord(k)-97
     if decrypt:
         k = k * -1
@@ -68,9 +71,9 @@ def ext_gcd(r1, r2):
             return 26 + t1
 
 def multi(text, k, decrypt=False):
-    if getAlpha(k) == None:
+    if validText(k) == None:
         return None
-    text = getAlpha(text)
+    text = validText(text)
     k = ord(k)-97
     if gcd(26, k) == 1:
         if decrypt:
@@ -112,9 +115,9 @@ def affine(text, k1, k2, decrypt=False):
 # //////////////////////////////////////////////////////
 
 def autokey(text, k, decrypt=False):
-    if getAlpha(k) == None:
+    if validText(k) == None:
         return None
-    text = getAlpha(text)
+    text = validText(text)
     k = ord(k)-97
     if decrypt:
         k = k * -1 
@@ -179,8 +182,8 @@ def clearPadding(text):
     return text
 
 def playfair(text, k, decrypt=False):
-    text = getAlpha(text)
-    k = getAlpha(k)
+    text = validText(text)
+    k = validText(k)
     if k == None or text == None:
         return None
     # init key
@@ -227,8 +230,8 @@ def playfair(text, k, decrypt=False):
     outText = "".join(["".join(y) for y in bi_out_matrix])
     if decrypt: return clearPadding(outText)
     return outText.upper()
-print(playfair("hello","lgdba qmhec urnif xvsok zywtp"))
-print(playfair("ECQZBX","lgdba qmhec urnif xvsok zywtp", decrypt=True))
+# print(playfair("hello","lgdba qmhec urnif xvsok zywtp"))
+# print(playfair("ECQZBX","lgdba qmhec urnif xvsok zywtp", decrypt=True))
 
 # ////////////////////////////////////////////////////////
 # //         ONE TO MANY:: VIGENERE CIPHER             //
@@ -250,8 +253,8 @@ def initKey(text, k):
     return k
         
 def vigenere(text, k, decrypt=False):
-    text = getAlpha(text)
-    k = getAlpha(k)
+    text = validText(text)
+    k = validText(k)
     if text == None or k == None:
         return None
     k = initKey(text, k)
@@ -266,6 +269,98 @@ def vigenere(text, k, decrypt=False):
         outText += chr(e + 97)
     if decrypt: return outText
     return outText.upper()
-print(vigenere('she is listening', 'pascal'))
-print(vigenere('HHWKSWXSLGNTCG', 'pascal', True))
+# print(vigenere('she is listening', 'pascal'))
+# print(vigenere('HHWKSWXSLGNTCG', 'pascal', True))
 
+# one-time pad (OTP) conditions:
+# key is random and use for one time
+# len(key) = len(text)
+
+# print(vigenere('she is listening aj so ss', 'sjlbacbvvbsocdjbadkba'))
+# print(vigenere('KQPJSNJNOFFWPJJKSRCT', 'sjlbacbvvbsocdjbadkba', True))
+
+# ////////////////////////////////////////////////////////
+# //         ONE TO MANY::  ADFGVX CIPHER              //
+# //////////////////////////////////////////////////////
+
+import math
+def padding(text, k):
+    if len(text) % len(k) != 0:
+        pading = 'A'
+        pading = pading * ( (len(k) - (len(text) % len(k))) )
+        text = text + pading
+    return text
+
+def convertBi(text, k1, k2, decrypt=False):
+    word = 'adfgvx'
+    outText = ""
+    if decrypt:
+        for i in range(0, len(text), 2):
+            if i == len(text)-1: break
+            r = word.index(text[i])
+            c = word.index(text[i+1])
+            outText += k1[r*6 + c]
+    else:
+        for ch in text:
+            r = k1.index(ch) // 6
+            c = (k1.index(ch) % 6)
+            outText += word[r]+word[c]
+        outText = padding(outText, k2)
+    return outText
+
+def convertSort(text, k, decrypt=False):
+    outText = ""
+    if decrypt:
+        s_text = math.ceil(len(text) / len(k))
+        d = {}
+        ka = "".join(sorted(k))
+        for i in range(len(k)):
+            d[ka[i]] = text[i*s_text:s_text*(i+1)]
+
+        text_sort_key = ""
+        for i in range(len(d)):
+            text_sort_key += d[k[i]]
+        outText = ""
+        for i in range(s_text):
+            for j in range(len(k)):
+                outText += text_sort_key[j * s_text + i]
+        return outText
+    else:
+        s_text = math.ceil(len(text) / len(k))
+        last_text = ""
+        for i in range(len(k)):
+            for j in range(s_text):
+                last_text += text[j * len(k) + i]
+        d = {}
+        for i in range(len(k)):
+            d[ord(k[i])] = last_text[i * s_text : s_text * i + s_text]
+        sorted_text = []
+        for k,v in d.items():
+            sorted_text.append(k)
+        sorted_text.sort()
+        for i in sorted_text:
+            outText += d[i]
+    return outText
+
+def adfgvx(text, k1, k2, decrypt=False):
+    text = validText(text, True)
+    k1 = validText(k1, True)
+    k2 = validText(k2)
+    if text == None or k1 == None or k2 == None:
+        return None
+    k = [chr(i) for i in range(97,123)]+[chr(i) for i in range(49,58)]
+    if(len(k1)==0):
+        k1 = "".join(k)
+    else:
+        for c in k: 
+            if c not in k1:
+                k1 += c
+    if decrypt:
+        original_bi = convertSort(text, k2, True)
+        outText = convertBi(original_bi, k1, k2, True)
+        return outText
+    bi_text = convertBi(text, k1, k2)
+    outText = convertSort(bi_text, k2)
+    return outText.upper()
+print(adfgvx('computer', 'orange', 'rinad'))
+print(adfgvx('AGXAFFAADFDAAVAADGGD', 'orange', 'rinad', True))
