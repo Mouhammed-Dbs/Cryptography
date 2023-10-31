@@ -362,5 +362,76 @@ def adfgvx(text, k1, k2, decrypt=False):
     bi_text = convertBi(text, k1, k2)
     outText = convertSort(bi_text, k2)
     return outText.upper()
-print(adfgvx('computer', 'orange', 'rinad'))
-print(adfgvx('AGXAFFAADFDAAVAADGGD', 'orange', 'rinad', True))
+# print(adfgvx('computer', 'orange', 'rinad'))
+# print(adfgvx('AGXAFFAADFDAAVAADGGD', 'orange', 'rinad', True))
+
+# ////////////////////////////////////////////////////////
+# //         ONE TO MANY::  HILL CIPHER                //
+# //////////////////////////////////////////////////////
+
+import numpy as np
+import math as ma
+
+def padding(text, k):
+    mod = len(text) % k.shape[1]
+    if mod != 0:
+        q = k.shape[1] - mod
+        padding ='a'*q
+        text += padding
+    return text
+
+def getRandomKey(dim):
+    arr = np.random.randint(0, 27, size=(dim, dim))
+    print("Getting Key....")
+    while(True):
+        arr = np.random.randint(0, 27, size=(dim, dim))
+        det = np.linalg.det(arr)
+        if det != 0 and det > 0 and ext_gcd(26, det%26) != None:
+            print(arr)
+            print("det:", det)
+            break
+        elif det != 0 and det < 0 and ext_gcd(26, 26 - (abs(det)%26)) != None:
+            print(arr)
+            print("det:", det)
+    return arr
+# getRandomKey(4)
+
+def hill(text, k, decrypt=False):
+    if k.shape[0] != k.shape[1] or np.linalg.det(k) == 0:
+        return None
+    text = validText(text)
+    if decrypt:
+        det = np.linalg.det(k)
+        adj = np.linalg.inv(k) * det
+        invDet = None
+        if det > 0:
+            invDet = ext_gcd(26, det%26)
+        else:
+            invDet = ext_gcd(26, 26 - (abs(det)%26))
+        print(invDet)
+        invK = invDet * adj
+        k = invK
+    else:
+        text = padding(text, k)
+
+    r = ma.ceil(len(text) / k.shape[1])
+    matrix_text = np.zeros((r, k.shape[1]),dtype=int)
+    for i,row in enumerate(matrix_text):
+        for j,c in enumerate(row):
+            matrix_text[i][j] = ord(text[i*k.shape[1] + j]) -97
+    matrix_text = matrix_text.round().astype(int)
+    k = k.round().astype(int)
+    outMatrix = np.matmul(matrix_text, k)
+    outMatrix = np.remainder(outMatrix, 26)
+    outText = ""
+    for i,row in enumerate(outMatrix):
+        for j,c in enumerate(row):
+            if c == 26: c = 0
+            outText += chr(int(c)+97)
+    return outText
+
+# k = np.array([[6, 11, 20], [24, 6, 1], [9, 13, 5]])
+# kk = np.array([[2, 17], [3, 14]])
+# kkk = np.array([[12, 7, 12, 11], [14, 21, 25, 3], [5, 6, 19, 12], [26, 23, 5, 24]])
+# print(hill('informatic', k))
+# print(hill('rfodicbduuqq', k, True))
